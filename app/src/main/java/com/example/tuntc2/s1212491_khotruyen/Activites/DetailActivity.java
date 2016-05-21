@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RatingBar;
@@ -34,7 +33,7 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
     private RatingBar ratingRb;
 
     private Book mBook;
-    private DBHelper mDb;
+    private DBHelper mLocalDatabase;
     private boolean mIsMine = false;
     private LongOperation mLongOperation;
 
@@ -44,7 +43,7 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mDb = new DBHelper(this);
+        mLocalDatabase = new DBHelper(this);
         mLongOperation= new LongOperation(this);
 
         ActionBar actionBar = getActionBar();
@@ -120,7 +119,7 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
         }
 ////
 
-        mIsMine = ((MyApplication) getApplication()).getmLocalDatabase().checkIfExistBook(mBook.getId());
+        mIsMine = ((MyApplication) getApplication()).getmLocalDatabase().checkIfExistDownloadedBook(mBook.getId());
 
         changeBookStatus();
     }
@@ -141,20 +140,32 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
                 startShareActivity();
                 break;
             case R.id.read_iv:
+                mLocalDatabase= ((MyApplication)getApplication()).getmLocalDatabase();
+
                 DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which){
                             case DialogInterface.BUTTON_POSITIVE:
-
+                                Intent intent1 = new Intent(DetailActivity.this, ViewerActivity.class);
+                                intent1.putExtra("BookTitle", mBook.getTitle());
+                                intent1.putExtra("BookAuthor", mBook.getAuthor());
+                                intent1.putExtra("BookCover", mBook.getCoverUrl());
+                                intent1.putExtra("BookID", mBook.getId());
+                                intent1.putExtra("ChapterID", mLocalDatabase.getReadingChapter(mBook.getId()));
+                                intent1.putExtra("ReadingY", mLocalDatabase.getReadingY(mBook.getId()));
+                                Log.i("<<NOGIAS-Detai read>>","mPosition= " +mLocalDatabase.getReadingChapter(mBook.getId()));
+                                Log.i("<<NOGIAS-Detai read>>","mPosition= " +mLocalDatabase.getReadingY(mBook.getId()));
+                                intent1.putExtra("Style", mBook.STYLE_ONLINE);
+                                startActivity(intent1);
                                 break;
                             case DialogInterface.BUTTON_NEGATIVE:
-                                Intent intent = new Intent(DetailActivity.this, ViewerActivity.class);
-                                intent.putExtra("BookTitle", mBook.getTitle());
-                                intent.putExtra("BookID", mBook.getId());
-                                intent.putExtra("ChapterID", 0);
-                                intent.putExtra("Style", mBook.STYLE_ONLINE);
-                                startActivity(intent);
+                                Intent intent2 = new Intent(DetailActivity.this, ViewerActivity.class);
+                                intent2.putExtra("BookTitle", mBook.getTitle());
+                                intent2.putExtra("BookID", mBook.getId());
+                                intent2.putExtra("ChapterID", 0);
+                                intent2.putExtra("Style", mBook.STYLE_ONLINE);
+                                startActivity(intent2);
                                 break;
                         }
                     }
@@ -191,7 +202,7 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
 
     private void addToBookshelf() {
         DBHelper db = ((MyApplication) getApplication()).getmLocalDatabase();
-        db.insertBook(mBook.getId(), mBook.getTitle(), mBook.getAuthor(), mBook.getCoverUrl());
+        db.insertDownloadedBook(mBook.getId(), mBook.getTitle(), mBook.getAuthor(), mBook.getCoverUrl());
         //tải và thêm các chapter của book xuống local database
         mLongOperation.getAllChaptersTask(mBook.getId());
         ((MyApplication) getApplication()).setmLocalDatabase(db);

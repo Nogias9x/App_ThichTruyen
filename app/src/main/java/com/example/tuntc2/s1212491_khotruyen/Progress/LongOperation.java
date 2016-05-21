@@ -247,7 +247,6 @@ public class LongOperation {
         return mBookList;
     }
 
-    //////////////
     //gửi request rating 1 truyện về server
     public void sendRatingRequestTask(final int storyID, final float ratingPoint) {
         new AsyncTask<Void, Void, Void>() {
@@ -311,5 +310,6 @@ public class LongOperation {
         }
 
     }
+   
 
 }

@@ -92,10 +92,10 @@ public class AllBookFragment extends Fragment implements AdapterView.OnItemClick
                     case DialogInterface.BUTTON_POSITIVE:
                         DBHelper db= ((MyApplication) mContext.getApplication()).getmLocalDatabase();
 
-                        if(db.checkIfExistBook( mBooks.get(position).getId())==true){
+                        if(db.checkIfExistDownloadedBook( mBooks.get(position).getId())==true){
                             Toast.makeText(mContext,mBooks.get(position).getTitle().toUpperCase()+" đã tồn tại" , Toast.LENGTH_SHORT).show();
                         }else {
-                            db.insertBook(mBooks.get(position).getId(), mBooks.get(position).getTitle(), mBooks.get(position).getAuthor(), mBooks.get(position).getCoverUrl());
+                            db.insertDownloadedBook(mBooks.get(position).getId(), mBooks.get(position).getTitle(), mBooks.get(position).getAuthor(), mBooks.get(position).getCoverUrl());
 
                             //tải và thêm các chapter của book xuống local database
                             mLongOperation.getAllChaptersTask(mBooks.get(position).getId());

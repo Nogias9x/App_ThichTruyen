@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +44,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("create table IF NOT EXISTS Book (StoryID integer primary key, Title text,Author text, Cover text, ReadingChapter integer, ReadingY integer)");
+        db.execSQL("create table IF NOT EXISTS Book (StoryID integer primary key, Title text,Author text, Cover text, ReadingChapter integer, ReadingY integer, Downloaded integer)");
         db.execSQL("create table IF NOT EXISTS Chapter (StoryID integer,ChapterID, ChapterTitle text, ChapterContent text, PRIMARY KEY ( StoryID, ChapterTitle))");
     }
 
@@ -53,7 +55,7 @@ public class DBHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public boolean insertBook  (int StoryID, String Title, String Author, String Cover)
+    public boolean insertDownloadedBook  (int StoryID, String Title, String Author, String Cover)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -63,10 +65,24 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put("Cover", Cover);
         contentValues.put("ReadingChapter", 0);
         contentValues.put("ReadingY", 0);
+        contentValues.put("Downloaded", 1);
         db.insertWithOnConflict("Book", null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
         return true;
     }
-
+    public boolean insertNondownloadedBook  (int StoryID, String Title, String Author, String Cover)
+    {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("StoryID", StoryID);
+        contentValues.put("Title", Title);
+        contentValues.put("Author", Author);
+        contentValues.put("Cover", Cover);
+        contentValues.put("ReadingChapter", 0);
+        contentValues.put("ReadingY", 0);
+        contentValues.put("Downloaded", 0);
+        db.insertWithOnConflict("Book", null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
+        return true;
+    }
     public boolean insertChapter (int StoryID, int ChapterID, String ChapterTitle, String ChapterContent)
     {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -109,9 +125,9 @@ public class DBHelper extends SQLiteOpenHelper {
         return list;
     }
 
-    public boolean checkIfExistBook(int id) {
+    public boolean checkIfExistDownloadedBook(int id) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String Query = "Select * from Book where StoryID = " + id;
+        String Query = "Select * from Book where StoryID = " + id+" and Downloaded = 1";
         Cursor cursor = db.rawQuery(Query, null);
         if(cursor.getCount() <= 0){
             cursor.close();
@@ -130,7 +146,11 @@ public class DBHelper extends SQLiteOpenHelper {
     public Integer deleteBookAndItsChapter(Integer id)
     {
         SQLiteDatabase db = this.getWritableDatabase();
-        Integer a= db.delete("Book", "StoryID = " + id.toString(), null);
+
+        ContentValues cv = new ContentValues();
+        cv.put("Downloaded",0);
+        db.update(BOOK_TABLE_NAME, cv, KEY_B_ID+ "= "+id, null);
+//        Integer a= db.delete("Book", "StoryID = " + id.toString(), null);
         Integer b= db.delete("Chapter", "StoryID = " + id.toString(), null);
         return b;
     }
@@ -139,7 +159,7 @@ public class DBHelper extends SQLiteOpenHelper {
         ArrayList<Book> array_list = new ArrayList<Book>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from Book ORDER BY `Title` ASC", null );
+        Cursor res =  db.rawQuery( "select * from Book where Downloaded = 1 ORDER BY `Title` ASC", null );
         res.moveToFirst();
 
         while(res.isAfterLast() == false){
@@ -184,7 +204,9 @@ public class DBHelper extends SQLiteOpenHelper {
         ContentValues cv = new ContentValues();
         cv.put(KEY_B_READING_CHAPTER, readingChapter);
         cv.put(KEY_B_READING_Y,readingY);
-
         db.update(BOOK_TABLE_NAME, cv, KEY_B_ID+ "= "+storyID, null);
+
+        Log.i("<<NOGIAS-DB>>","mPosition= " +readingChapter);
+        Log.i("<<NOGIAS-DB>>","mPosition= " +readingY);
     }
 }
