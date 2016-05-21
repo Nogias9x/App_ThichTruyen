@@ -2,10 +2,16 @@ package com.example.tuntc2.s1212491_khotruyen.Activites;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -17,10 +23,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tuntc2.s1212491_khotruyen.Common.MyApplication;
+import com.example.tuntc2.s1212491_khotruyen.Progress.NetworkReceiver;
 import com.example.tuntc2.s1212491_khotruyen.R;
 
 public class BaseActivity extends Activity implements View.OnClickListener{
     private MyApplication mApplication;
+    private static BroadcastReceiver mNetworkBroadcastReceiver;
+
     //    setting mSettingDialog
     private Dialog mSettingDialog;
     private ImageButton ib_nextText;
@@ -50,17 +59,6 @@ public class BaseActivity extends Activity implements View.OnClickListener{
 
     @Override
     protected void onStop() {
-        //save value when close
-        MyApplication myApplication= (MyApplication) getApplication();
-        SharedPreferences preferences = getSharedPreferences("sharedPrefs", 0);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("CurrentTextColor",myApplication.getmCurrentTextColor());
-        editor.putInt("CurrentBackgroundColor",myApplication.getmCurrentBackgroundColor());
-        editor.putInt("CurrentReadMode",myApplication.getmCurrentReadMode());
-        editor.putInt("CurrentTextSize",myApplication.getmCurrentTextSize());
-        editor.putInt("CurrentLineSpace",myApplication.getmCurrentLineSpace());
-        editor.commit();
-        Toast.makeText(this, "saved data SharedPreferences", Toast.LENGTH_SHORT).show();
         super.onStop();
     }
 
@@ -68,7 +66,14 @@ public class BaseActivity extends Activity implements View.OnClickListener{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mApplication= (MyApplication) getApplication();
+
+        mNetworkBroadcastReceiver= new NetworkReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("SOME_ACTION");
+        Log.i("<<NOGIAS>>", "registerReceiver");
+        registerReceiver(mNetworkBroadcastReceiver, filter);
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -206,6 +211,18 @@ public class BaseActivity extends Activity implements View.OnClickListener{
                 setDialog();
                 break;
             case R.id.dialog_save_btn:
+                //save value when OK
+                MyApplication myApplication= (MyApplication) getApplication();
+                SharedPreferences sharedPreferences = getSharedPreferences("sharedPrefs", MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putInt("CurrentTextColor",myApplication.getmCurrentTextColor());
+                editor.putInt("CurrentBackgroundColor",myApplication.getmCurrentBackgroundColor());
+                editor.putInt("CurrentReadMode",myApplication.getmCurrentReadMode());
+                editor.putInt("CurrentTextSize",myApplication.getmCurrentTextSize());
+                editor.putInt("CurrentLineSpace",myApplication.getmCurrentLineSpace());
+                editor.commit();
+                Toast.makeText(this, "saved data SharedPreferences", Toast.LENGTH_SHORT).show();
+
                 mSettingDialog.dismiss();
                 break;
             case R.id.dialog_cancel_btn:
@@ -221,5 +238,25 @@ public class BaseActivity extends Activity implements View.OnClickListener{
 
     public MyApplication getmApplication() {
         return mApplication;
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mNetworkBroadcastReceiver != null) {
+            Log.i("<<NOGIAS>>", "unregisterReceiver");
+            unregisterReceiver(mNetworkBroadcastReceiver);
+            mNetworkBroadcastReceiver = null;
+        }
+        super.onDestroy();
+    }
+
+    public boolean isOnline(){
+        NetworkInfo ni = ((ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+        if (ni == null) {
+            Log.i("<<NOGIAS>>", "isOnline offline");
+            return false;
+        }
+        Log.i("<<NOGIAS>>", "isOnline online");
+        return true;
     }
 }

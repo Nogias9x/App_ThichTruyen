@@ -1,11 +1,12 @@
 package com.example.tuntc2.s1212491_khotruyen.Activites;
 
 import android.app.ActionBar;
-import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RatingBar;
@@ -16,9 +17,8 @@ import com.example.tuntc2.s1212491_khotruyen.Common.Book;
 import com.example.tuntc2.s1212491_khotruyen.Common.DBHelper;
 import com.example.tuntc2.s1212491_khotruyen.Common.MyApplication;
 import com.example.tuntc2.s1212491_khotruyen.Common.Utils;
+import com.example.tuntc2.s1212491_khotruyen.Progress.LongOperation;
 import com.example.tuntc2.s1212491_khotruyen.R;
-
-import java.util.ArrayList;
 
 public class DetailActivity extends BaseActivity implements View.OnClickListener {
     private ImageView coverIv;
@@ -36,12 +36,16 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
     private Book mBook;
     private DBHelper mDb;
     private boolean mIsMine = false;
+    private LongOperation mLongOperation;
+
+    private float mCurrentRating;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         mDb = new DBHelper(this);
+        mLongOperation= new LongOperation(this);
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayShowTitleEnabled(false);
@@ -78,6 +82,41 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
             introTv.setText(mBook.getDescription());
             viewTv.setText(getString(R.string.book_view) + mBook.getView());
             chapterTv.setText(mBook.getChapter());
+            ratingRb.setStepSize((float)0.5);
+            ratingRb.setIsIndicator(false);
+
+
+
+            mCurrentRating = 0;
+            ratingRb.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
+                @Override
+                public void onRatingChanged(RatingBar ratingBar, float rating, boolean fromUser) {
+                    Log.i("<<NOGIAS>>","onRatingChanged");
+                    if(ratingRb.getRating()==mCurrentRating) return;
+                    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            switch (which){
+                                case DialogInterface.BUTTON_POSITIVE:
+                                    mCurrentRating= ratingRb.getRating();
+                                    LongOperation longOperation= new LongOperation(DetailActivity.this);
+                                    longOperation.sendRatingRequestTask(mBook.getId(), mCurrentRating);
+
+                                    break;
+                                case DialogInterface.BUTTON_NEGATIVE:
+                                    ratingRb.setRating(mCurrentRating);
+                                    break;
+                            }
+                        }
+                    };
+
+                    //////////
+                    AlertDialog.Builder builder = new AlertDialog.Builder(DetailActivity.this);
+                    builder.setMessage("Bạn có muốn đánh giá truyện " + mBook.getTitle()+ " với " +ratingRb.getRating()+ " sao không?")
+                            .setPositiveButton("Có", dialogClickListener)
+                            .setNegativeButton("Không", dialogClickListener).show();
+                }
+            });
         }
 ////
 
@@ -88,17 +127,45 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
+        int id= view.getId();
+
+        if(id== R.id.share_iv ||id== R.id.read_iv ||id==R.id.add_remove_my_bookshelf_iv) {
+            if (!this.isOnline()) {
+                Toast.makeText(this, R.string.msg_no_internet, Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        switch (id) {
             case R.id.share_iv:
                 startShareActivity();
                 break;
             case R.id.read_iv:
-                Intent intent = new Intent(this, ViewerActivity.class);
-                intent.putExtra("BookTitle", mBook.getTitle());
-                intent.putExtra("BookID", mBook.getId());
-                intent.putExtra("ChapterID", 0);
-                intent.putExtra("Style", mBook.STYLE_ONLINE);
-                startActivity(intent);
+                DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which){
+                            case DialogInterface.BUTTON_POSITIVE:
+
+                                break;
+                            case DialogInterface.BUTTON_NEGATIVE:
+                                Intent intent = new Intent(DetailActivity.this, ViewerActivity.class);
+                                intent.putExtra("BookTitle", mBook.getTitle());
+                                intent.putExtra("BookID", mBook.getId());
+                                intent.putExtra("ChapterID", 0);
+                                intent.putExtra("Style", mBook.STYLE_ONLINE);
+                                startActivity(intent);
+                                break;
+                        }
+                    }
+                };
+
+                //////////
+                AlertDialog.Builder builder = new AlertDialog.Builder(DetailActivity.this);
+                builder.setMessage("Bạn có muốn đọc tiếp tại vị trí dở dang không?")
+                        .setPositiveButton("Có", dialogClickListener)
+                        .setNegativeButton("Không", dialogClickListener).show();
+
                 break;
             case R.id.add_remove_my_bookshelf_iv:
                 if (mIsMine) {
@@ -125,6 +192,8 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
     private void addToBookshelf() {
         DBHelper db = ((MyApplication) getApplication()).getmLocalDatabase();
         db.insertBook(mBook.getId(), mBook.getTitle(), mBook.getAuthor(), mBook.getCoverUrl());
+        //tải và thêm các chapter của book xuống local database
+        mLongOperation.getAllChaptersTask(mBook.getId());
         ((MyApplication) getApplication()).setmLocalDatabase(db);
         mIsMine = true;
         changeBookStatus();
@@ -133,7 +202,7 @@ public class DetailActivity extends BaseActivity implements View.OnClickListener
 
     private void removeBookFromBookshelf() {
         DBHelper db = ((MyApplication) getApplication()).getmLocalDatabase();
-        db.deleteBook(mBook.getId());
+        db.deleteBookAndItsChapter(mBook.getId());
         ((MyApplication) getApplication()).setmLocalDatabase(db);
         mIsMine = false;
         changeBookStatus();

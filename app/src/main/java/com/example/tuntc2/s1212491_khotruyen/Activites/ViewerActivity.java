@@ -3,6 +3,7 @@ package com.example.tuntc2.s1212491_khotruyen.Activites;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -16,9 +17,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.tuntc2.s1212491_khotruyen.Common.AutoScrollRunnable;
 import com.example.tuntc2.s1212491_khotruyen.Common.Book;
 import com.example.tuntc2.s1212491_khotruyen.Common.Chapter;
+import com.example.tuntc2.s1212491_khotruyen.Common.DBHelper;
 import com.example.tuntc2.s1212491_khotruyen.Common.MyApplication;
 import com.example.tuntc2.s1212491_khotruyen.R;
 
@@ -49,8 +50,11 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
     private Book mBook;
     private Chapter mChapter;
     private ProgressDialog mDialog;
-    private int bookID;
+    private int mBookID;
     private int chapterID;
+    private int mChapterID;
+    private int mReadingY;
+    private DBHelper mLocalDatabase;
 
     Handler mHandler= new Handler();
     AutoScrollOperation mScrollOperation= new AutoScrollOperation();
@@ -60,6 +64,8 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_viewer);
+
+        mLocalDatabase= ((MyApplication)getApplication()).getmLocalDatabase();
 
         getActionBar().setDisplayShowTitleEnabled(true);
         mScrollView= (ScrollView) findViewById(R.id.viewer_scrollView);
@@ -77,6 +83,8 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
         mChapterContent.setOnClickListener(this);
         mScrollView.scrollTo(0,0);
 
+        loadPreferences();
+
         setContentStyle();
 
         mChapter= new Chapter();
@@ -88,21 +96,28 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
             mPosition= callerIntent.getIntExtra("position", -1);
             mTitleArray= callerIntent.getStringArrayListExtra("titleArray");
             mContentArray= callerIntent.getStringArrayListExtra("contentArray");
-            changeChapter(mPosition);
+            mChapterID= callerIntent.getIntExtra("ChapterID", 0);//
+            mReadingY= callerIntent.getIntExtra("ReadingY", 0);//
+            Toast.makeText(this, "mReadingY:"+mReadingY, Toast.LENGTH_SHORT).show();
+
+            changeChapter(mPosition, mReadingY);
+            Toast.makeText(this, "HERE", Toast.LENGTH_SHORT).show();
+//            mScrollView.scrollTo(0, mReadingY);
+
         } else if(mReadStyle==mBook.STYLE_ONLINE){
             Intent callerIntent1= getIntent();
-            bookID= callerIntent1.getIntExtra("BookID", -1);
+            mBookID = callerIntent1.getIntExtra("BookID", -1);
             chapterID= callerIntent1.getIntExtra("ChapterID", -1);
-            if(bookID==-1 || chapterID==-1) {
+            if(mBookID ==-1 || chapterID==-1) {
                 Toast.makeText(this, "Nội dung này không thể đọc!", Toast.LENGTH_SHORT).show();
                 return;
             }
-            getChapterTask(bookID, chapterID);
+            getChapterTask(mBookID, chapterID);
         }
     }
 
-    public void changeChapter(int position){
-        this.mPosition= position;
+    public void changeChapter(int chapter, final int y){
+        this.mPosition= chapter;
 
         if(mPosition==-1){
             Toast.makeText(this, "Chương được chọn không tồn tại!!!", Toast.LENGTH_LONG).show();
@@ -118,7 +133,15 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
 
         mChapterTitle.setText(mTitleArray.get(mPosition));
         mChapterContent.setText(mContentArray.get(mPosition));
-        mScrollView.scrollTo(0,0);
+
+        //
+        mScrollView.post(new Runnable() {
+            @Override
+            public void run() {
+                mScrollView.scrollTo(0, y);
+            }
+        });
+//        mScrollView.scrollTo(0,y);
     }
 
     @Override
@@ -155,7 +178,7 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
                 Toast.makeText(this, "Không thể chuyển chương", Toast.LENGTH_SHORT).show();
                 return;
             }
-            changeChapter(position);
+            changeChapter(position, 0);
             return;
         }else if(mReadStyle== mBook.STYLE_ONLINE){
             if (position < 0) {
@@ -164,7 +187,7 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
             }
             chapterID= position;
             mChapter= null;
-            getChapterTask(bookID, position);
+            getChapterTask(mBookID, position);
         }
     }
 
@@ -361,5 +384,25 @@ public class ViewerActivity extends BaseActivity implements View.OnClickListener
         Log.i("<<NOGIAS>>", "onPause");
         mScrollOperation.setmIsScrolling(false);
         super.onPause();
+    }
+
+    private void loadPreferences()
+    {
+        Toast.makeText(this, "LOAD data SharedPreferences", Toast.LENGTH_SHORT).show();
+        SharedPreferences sharedPreferences = getSharedPreferences("sharedPrefs", MODE_PRIVATE);
+        MyApplication mApplication= (MyApplication) getApplication();
+        mApplication.setmCurrentTextColor(sharedPreferences.getInt("CurrentTextColor", 0));
+        mApplication.setmCurrentBackgroundColor(sharedPreferences.getInt("CurrentBackgroundColor", 1));
+        mApplication.setmCurrentTextSize(sharedPreferences.getInt("CurrentTextSize", 11));
+        mApplication.setmCurrentReadMode(sharedPreferences.getInt("CurrentReadMode", 0));
+        mApplication.setmCurrentLineSpace(sharedPreferences.getInt("CurrentLineSpace", 10));
+    }
+
+    @Override
+    protected void onStop() {
+        mLocalDatabase= ((MyApplication)getApplication()).getmLocalDatabase();
+        mLocalDatabase.setReadingPositon(mBookID, mPosition, (int)mScrollView.getScrollY());
+        Toast.makeText(this, "onStop:"+(int)mScrollView.getScrollY(), Toast.LENGTH_SHORT).show();
+        super.onStop();
     }
 }

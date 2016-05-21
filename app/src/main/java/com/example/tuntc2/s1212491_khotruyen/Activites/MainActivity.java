@@ -30,8 +30,6 @@ public class MainActivity extends BaseActivity{
         mApplication= super.getmApplication();
         mFragmentList = new ArrayList<Fragment>();
 
-        loadPreferences();
-
         mActionBar = getActionBar();
         mActionBar.setDisplayShowTitleEnabled(false);
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -77,13 +75,5 @@ public class MainActivity extends BaseActivity{
         mApplication.setmLocalDatabase(localDatabase);
     }
 
-    private void loadPreferences()
-    {
-        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-        mApplication.setmCurrentTextColor(sharedPreferences.getInt("CurrentTextColor", 0));
-        mApplication.setmCurrentBackgroundColor(sharedPreferences.getInt("CurrentBackgroundColor", 1));
-        mApplication.setmCurrentTextSize(sharedPreferences.getInt("CurrentTextSize", 11));
-        mApplication.setmCurrentReadMode(sharedPreferences.getInt("CurrentReadMode", 0));
-        mApplication.setmCurrentLineSpace(sharedPreferences.getInt("CurrentLineSpace", 10));
-    }
+
 }

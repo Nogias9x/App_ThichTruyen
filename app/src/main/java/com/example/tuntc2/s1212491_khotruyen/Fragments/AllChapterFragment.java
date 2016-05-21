@@ -1,8 +1,10 @@
 package com.example.tuntc2.s1212491_khotruyen.Fragments;
 
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -17,9 +19,11 @@ import android.widget.Toast;
 
 import com.example.tuntc2.s1212491_khotruyen.Activites.MainActivity;
 import com.example.tuntc2.s1212491_khotruyen.Activites.ViewerActivity;
+import com.example.tuntc2.s1212491_khotruyen.Adapters.BookGridAdapter;
 import com.example.tuntc2.s1212491_khotruyen.Adapters.ChapterListAdapter;
 import com.example.tuntc2.s1212491_khotruyen.Common.Book;
 import com.example.tuntc2.s1212491_khotruyen.Common.Chapter;
+import com.example.tuntc2.s1212491_khotruyen.Common.DBHelper;
 import com.example.tuntc2.s1212491_khotruyen.Common.MyApplication;
 import com.example.tuntc2.s1212491_khotruyen.R;
 
@@ -42,6 +46,7 @@ public class AllChapterFragment extends Fragment implements AdapterView.OnItemCl
     private ProgressDialog Dialog;
     private int mStoryID;
     private String mStoryTitle;
+    private DBHelper mLocalDatabase;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -51,14 +56,54 @@ public class AllChapterFragment extends Fragment implements AdapterView.OnItemCl
         mListView.setEmptyView(view.findViewById(R.id.empty));
         mListView.setOnItemClickListener(this);
         mListView.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+        mLocalDatabase =  ((MyApplication)mContext.getApplication()).getmLocalDatabase();
 
         mContext.getActionBar().setDisplayShowTitleEnabled(true);
         mContext.getActionBar().setTitle(mStoryTitle);
+
         getAllChaptersTask();
 
-        if (((MyApplication) mContext.getApplication()).getmLocalDatabase() != null) {
-            Toast.makeText(mContext, "numberOfBook:" + ((MyApplication) mContext.getApplication()).getmLocalDatabase().numberOfBook(), Toast.LENGTH_LONG).show();
-        }
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which){
+                    case DialogInterface.BUTTON_POSITIVE:
+                        Intent intent = new Intent(mContext, ViewerActivity.class);
+                        intent.putExtra("BookTitle", mStoryTitle);
+                        intent.putExtra("BookID", mStoryID);
+                        intent.putExtra("position", mLocalDatabase.getReadingChapter(mStoryID));
+                        intent.putExtra("ReadingY", mLocalDatabase.getReadingY(mStoryID));
+                        intent.putExtra("Style", Book.STYLE_OFFLINE);
+
+                        ArrayList<String> titleArray= new ArrayList<String>();
+                        ArrayList<String> contentArray= new ArrayList<String>();
+
+                        for(int i=0; i<mChapters.size(); i++){
+                            titleArray.add(mChapters.get(i).getmTitle());
+                            contentArray.add(mChapters.get(i).getmContent());
+                        }
+
+                        intent.putStringArrayListExtra("titleArray", titleArray);
+                        intent.putStringArrayListExtra("contentArray", contentArray);
+
+                        startActivity(intent);
+                        break;
+
+                    case DialogInterface.BUTTON_NEGATIVE:
+
+                        break;
+                }
+            }
+        };
+        //////////
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage("Bạn có muốn đọc tiếp không?")
+                .setPositiveButton("Có, đọc tiếp", dialogClickListener)
+                .setNegativeButton("Không, chọn lại chương khác", dialogClickListener).show();
+
+
+
+
         return view;
     }
 
@@ -67,7 +112,6 @@ public class AllChapterFragment extends Fragment implements AdapterView.OnItemCl
         new AsyncTask<Void, Void, List<Chapter>>() {
             @Override
             protected void onPreExecute() {
-                //DialogManager.showDialog(getActivity(), DialogManager.TYPE_PROGRESS);
                 Dialog = new ProgressDialog(mContext);
                 Dialog.setMessage(getString(R.string.progress_msg));
                 Dialog.show();
@@ -75,7 +119,7 @@ public class AllChapterFragment extends Fragment implements AdapterView.OnItemCl
 
             @Override
             protected List<Chapter> doInBackground(Void... voids) {
-                return getAllChapters("http://wsthichtruyen-1212491.rhcloud.com/?function=1&StoryID="+mStoryID);
+                return mLocalDatabase.getAllChapters(mStoryID);
             }
 
             @Override
@@ -85,7 +129,6 @@ public class AllChapterFragment extends Fragment implements AdapterView.OnItemCl
                     ChapterListAdapter adapter = new ChapterListAdapter(getActivity(), mChapters);
                     mListView.setAdapter(adapter);
                 }
-                //DialogManager.closeDialog(0);
                 Dialog.dismiss();
             }
         }.execute();

@@ -20,9 +20,12 @@ import android.widget.Toast;
 import com.example.tuntc2.s1212491_khotruyen.Activites.DetailActivity;
 import com.example.tuntc2.s1212491_khotruyen.Activites.MainActivity;
 import com.example.tuntc2.s1212491_khotruyen.Adapters.BookListAdapter;
+import com.example.tuntc2.s1212491_khotruyen.Adapters.ChapterListAdapter;
 import com.example.tuntc2.s1212491_khotruyen.Common.Book;
+import com.example.tuntc2.s1212491_khotruyen.Common.Chapter;
 import com.example.tuntc2.s1212491_khotruyen.Common.DBHelper;
 import com.example.tuntc2.s1212491_khotruyen.Common.MyApplication;
+import com.example.tuntc2.s1212491_khotruyen.Progress.LongOperation;
 import com.example.tuntc2.s1212491_khotruyen.R;
 
 import org.json.JSONArray;
@@ -42,118 +45,34 @@ public class AllBookFragment extends Fragment implements AdapterView.OnItemClick
     private ListView mListView;
     private MainActivity mContext;
     private ProgressDialog Dialog;
+    private List<Chapter> mChapters = null;
+    LongOperation mLongOperation;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mContext = (MainActivity) getActivity();
         View view = inflater.inflate(R.layout.fragment_allbook, container, false);
+
+
+        mLongOperation= new LongOperation(mContext);
+
         mListView = (ListView) view.findViewById(R.id.list);
         mListView.setEmptyView(view.findViewById(R.id.empty));
+
+        if(!mContext.isOnline()){
+            Toast.makeText(mContext, R.string.msg_no_internet, Toast.LENGTH_SHORT).show();
+            return view;
+        }
+
         mListView.setOnItemClickListener(this);
         mListView.setOnItemLongClickListener(this);
-        getAllBooksTask();
+        mLongOperation.getAllBooksTask(this, mListView);
+
         return view;
     }
 
-    private void getAllBooksTask() {
-        new AsyncTask<Void, Void, List<Book>>() {
-            @Override
-            protected void onPreExecute() {
-                Dialog = new ProgressDialog(mContext);
-                Dialog.setMessage(getString(R.string.progress_msg));
-                Dialog.show();
-            }
-
-            @Override
-            protected List<Book> doInBackground(Void... voids) {
-                return getAllBooks("http://wsthichtruyen-1212491.rhcloud.com/?function=0");
-            }
-
-            @Override
-            protected void onPostExecute(List<Book> list) {
-                if (list != null) {
-                    mBooks = list;
-                    BookListAdapter adapter = new BookListAdapter(getActivity(), mBooks);
-                    mListView.setAdapter(adapter);
-                }
-                //DialogManager.closeDialog(0);
-                Dialog.dismiss();
-            }
-        }.execute();
-    }
-
-    private List<Book> getAllBooks(String path) {
-        Context mContext;
-        String Content = null;
-        String Error = null;
-        ProgressDialog Dialog;
-        String data = "";
-        List<Book> mBookList = null;
-
-        BufferedReader reader = null;
-        try {
-            URL url = new URL(path);//"http://wsthichtruyen-1212491.rhcloud.com/?function=0");
-
-            URLConnection conn = url.openConnection();
-            conn.setDoOutput(true);
-            OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-            wr.write(data);
-            wr.flush();
-
-            // Get the server response
-            reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder sb = new StringBuilder();
-            String line = null;
-
-            // Read Server Response
-            while ((line = reader.readLine()) != null) {
-                // Append server response in string
-                sb.append(line + " ");
-            }
-
-            // Append Server Response To Content String
-            Content = sb.toString();
-        } catch (Exception ex) {
-            Error = ex.getMessage();
-        } finally {
-            try {
-                reader.close();
-            } catch (Exception ex) {
-                Log.i("<<NOGIAS>>", ex.toString());
-            }
-        }
-
-        if (Error != null) {
-            Log.i("<<NOGIAS>>", Error);
-        } else {
-            /****************** Start Parse Response JSON Data *************/
-            JSONArray jsonArray;
-            try {
-                /****** Creates a new JSONObject with name/value mappings from the JSON string. ********/
-                Content = Html.fromHtml(Content).toString();
-                jsonArray = new JSONArray(Content);//
-//                /*********** Process each JSON Node ************///
-                int lengthJsonArr = jsonArray.length();
-                mBookList = new ArrayList<Book>(lengthJsonArr);
-                for (int i = 0; i < lengthJsonArr; i++) {
-//                    /****** Get Object for each JSON node.***********/
-                    JSONObject jsonChildNode = jsonArray.getJSONObject(i);
-//
-                    Book book = new Book();
-                    book.setId(jsonChildNode.optInt(Book.KEY_ID));
-                    book.setAuthor(jsonChildNode.optString(Book.KEY_AUTHOR).toString());
-                    book.setCoverUrl(jsonChildNode.optString(Book.KEY_COVER).toString());
-                    book.setChapter(jsonChildNode.optString(Book.KEY_CHAPTER).toString());
-                    book.setDescription(jsonChildNode.optString(Book.KEY_DESCRIPTION).toString());
-                    book.setTitle(jsonChildNode.optString(Book.KEY_TITLE).toString());
-                    book.setView(jsonChildNode.optInt(Book.KEY_VIEW));
-                    mBookList.add(book);
-                }
-            } catch (JSONException e) {
-                Log.i("<<NOGIAS>>", e.toString());
-            }
-        }
-        return mBookList;
+    public void setmBooks(List<Book> mBooks) {
+        this.mBooks = mBooks;
     }
 
     @Override
@@ -161,12 +80,11 @@ public class AllBookFragment extends Fragment implements AdapterView.OnItemClick
         Intent detailIntent= new Intent(mContext, DetailActivity.class);
         detailIntent.putExtra("selectedBook", mBooks.get(position));
         mContext.startActivity(detailIntent);
+        Toast.makeText(mContext, String.valueOf(mBooks.get(position).getRating()), Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
-//        Toast.makeText(getActivity(), "onItemLongClick", Toast.LENGTH_SHORT).show();
-
         DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -178,10 +96,13 @@ public class AllBookFragment extends Fragment implements AdapterView.OnItemClick
                             Toast.makeText(mContext,mBooks.get(position).getTitle().toUpperCase()+" đã tồn tại" , Toast.LENGTH_SHORT).show();
                         }else {
                             db.insertBook(mBooks.get(position).getId(), mBooks.get(position).getTitle(), mBooks.get(position).getAuthor(), mBooks.get(position).getCoverUrl());
-                            ((MyApplication) mContext.getApplication()).setmLocalDatabase(db);
-                            Toast.makeText(mContext,mBooks.get(position).getTitle().toUpperCase()+" đã được thêm vào TRUYỆN CỦA TÔI..." , Toast.LENGTH_SHORT).show();
-                        }
 
+                            //tải và thêm các chapter của book xuống local database
+                            mLongOperation.getAllChaptersTask(mBooks.get(position).getId());
+
+                            ((MyApplication) mContext.getApplication()).setmLocalDatabase(db);
+
+                        }
                         break;
 
                     case DialogInterface.BUTTON_NEGATIVE:
@@ -197,5 +118,6 @@ public class AllBookFragment extends Fragment implements AdapterView.OnItemClick
                 .setNegativeButton("Không", dialogClickListener).show();
         return true;
     }
+
 }
 

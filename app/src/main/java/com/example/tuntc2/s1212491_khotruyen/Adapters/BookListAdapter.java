@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import com.example.tuntc2.s1212491_khotruyen.Common.Book;
@@ -63,8 +64,11 @@ public class BookListAdapter extends BaseAdapter {
             viewHolder.authorTv.setText(book.getAuthor());
             viewHolder.viewTv.setText(mContext.getString(R.string.book_view) + " "+ book.getView());
             viewHolder.chapterTv.setText(book.getChapter());
+            viewHolder.ratingRb.setRating(book.getRating());
+            viewHolder.ratingRb.setScaleX(0.5f);
+            viewHolder.ratingRb.setScaleY(0.5f);
+            viewHolder.ratingRb.setPivotX(0);
         }
-
         return convertView;
     }
 
@@ -74,6 +78,7 @@ public class BookListAdapter extends BaseAdapter {
         private TextView authorTv;
         private TextView viewTv;
         private TextView chapterTv;
+        private RatingBar ratingRb;
 
         public ViewHolder(View view) {
             coverIv = (ImageView) view.findViewById(R.id.cover_iv);
@@ -81,6 +86,7 @@ public class BookListAdapter extends BaseAdapter {
             authorTv = (TextView) view.findViewById(R.id.author_tv);
             viewTv = (TextView) view.findViewById(R.id.view_tv);
             chapterTv = (TextView) view.findViewById(R.id.chapter_tv);
+            ratingRb= (RatingBar) view.findViewById(R.id.rating_rb);
         }
     }
 }

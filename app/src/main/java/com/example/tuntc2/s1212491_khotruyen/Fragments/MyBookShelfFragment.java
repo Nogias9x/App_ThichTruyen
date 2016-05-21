@@ -11,7 +11,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
@@ -32,24 +31,6 @@ public class MyBookShelfFragment extends Fragment implements AdapterView.OnItemC
     private int mPosition = 0;
     private MainActivity mContext;
     private ProgressDialog Dialog;
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        Log.d("--", "onActivityCreated");
-        super.onActivityCreated(savedInstanceState);
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        Log.d("--", "onAttach");
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        Log.d("--", "onCreate");
-        super.onCreate(savedInstanceState);
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -136,14 +117,12 @@ public class MyBookShelfFragment extends Fragment implements AdapterView.OnItemC
                 switch (which) {
                     case DialogInterface.BUTTON_POSITIVE:
                         DBHelper db = ((MyApplication) mContext.getApplication()).getmLocalDatabase();
-                        db.deleteBook(mBooks.get(position).getId());
+                        db.deleteBookAndItsChapter(mBooks.get(position).getId());
                         ((MyApplication) mContext.getApplication()).setmLocalDatabase(db);
                         Toast.makeText(mContext, mBooks.get(position).getTitle().toUpperCase() + " đã được xoá khỏi TRUYỆN CỦA TÔI...", Toast.LENGTH_SHORT).show();
                         refresh();
                         break;
-
                     case DialogInterface.BUTTON_NEGATIVE:
-                        Toast.makeText(getActivity(), "NO", Toast.LENGTH_SHORT).show();
                         break;
                 }
             }

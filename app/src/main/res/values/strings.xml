@@ -22,14 +22,9 @@
     <!-- ProgressDialog -->
     <string name="progress_msg">Đang tải dữ liệu ...</string>
 
-    <!-- InternetRetryDialog -->
-    <string name="alert_retry_internet_title">Không thể kết nối Internet!</string>
-    <string name="alert_retry_internet_msg">Vui lòng kiểm tra Internet và thử lại.</string>
-    <string name="alert_retry_internet_btn_retry">Thử lại</string>
-    <string name="alert_error_load_book">Không thể lấy dữ liệu truyện này.</string>
-    <string name="alert_btn_ok">OK</string>
+    <!-- message -->
+    <string name="msg_no_internet">Không có kết nối, vui lòng kiểm tra tín hiệu!</string>
+    <string name="msg_rate_success">Đánh giá của bạn đã được ghi nhận.</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

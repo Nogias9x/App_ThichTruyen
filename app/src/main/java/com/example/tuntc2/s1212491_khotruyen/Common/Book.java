@@ -12,6 +12,9 @@ public class Book implements Serializable {
     public static final String KEY_DESCRIPTION = "Description";
     public static final String KEY_CHAPTER = "Status";
     public static final String KEY_TITLE = "Title";
+    public static final String KEY_GOODPOINT = "GoodPoint";
+    public static final String KEY_TOTALPOINT = "TotalPoint";
+
 
     public static final int STYLE_ONLINE = 0;
     public static final int STYLE_OFFLINE = 1;
@@ -24,6 +27,11 @@ public class Book implements Serializable {
     private long mView;
     private String mChapter;
     private long mLastVisit;
+    private int mGoodPoint;
+    private int mTotalPoint;
+
+    private int mReadingChapter;
+    private int mReadingY;
 
     public long getLastVisit() {
         return mLastVisit;
@@ -100,6 +108,35 @@ public class Book implements Serializable {
 
     public void setChapter(String chapter) {
         mChapter = chapter;
+    }
+
+    public void setTotalPoint(int mTotalPoint) {
+        this.mTotalPoint = mTotalPoint;
+    }
+
+    public void setGoodPoint(int mGoodPoint) {
+        this.mGoodPoint = mGoodPoint;
+    }
+
+    public float getRating() {
+        if(mTotalPoint==0) return 0;
+        return (float)mGoodPoint*5/mTotalPoint;
+    }
+
+    public int getmReadingChapter() {
+        return mReadingChapter;
+    }
+
+    public int getmReadingY() {
+        return mReadingY;
+    }
+
+    public void setmReadingChapter(int mReadingChapter) {
+        this.mReadingChapter = mReadingChapter;
+    }
+
+    public void setmReadingY(int mReadingY) {
+        this.mReadingY = mReadingY;
     }
 }
 
